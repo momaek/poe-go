@@ -1,8 +1,11 @@
 package poego
 
+import "net/http"
+
 // Client poego client
 // do every request
 type Client struct {
+	*http.Client
 	conf *Config
 }
 
@@ -23,10 +26,38 @@ type Config struct {
 	Proxy string // TODO
 }
 
-// NewClient new poe-go client
-func NewClient(conf *Config) *Client {
-	return &Client{conf}
+type Transport struct {
+	conf *Config
+	tr   http.RoundTripper
 }
 
-// SendMessage send message to a bot
-func (c *Client) SendMessage() {}
+// RoundTrip implement http.RoundTripper
+func (t *Transport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
+	return t.tr.RoundTrip(req)
+}
+
+// NewClient new poe-go client
+func New(conf *Config) *Client {
+	return &Client{
+		Client: &http.Client{Transport: newTransport(conf, http.DefaultTransport)},
+		conf:   conf,
+	}
+}
+
+func NewWithHTTPClient(conf *Config, cli *http.Client) *Client {
+	c := &Client{conf: conf}
+
+	// wrap transport
+	tr := newTransport(conf, cli.Transport)
+	cli.Transport = tr
+
+	c.Client = cli
+	return c
+}
+
+func newTransport(conf *Config, tr http.RoundTripper) *Transport {
+	return &Transport{
+		conf: conf,
+		tr:   tr,
+	}
+}
