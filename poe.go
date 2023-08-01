@@ -21,9 +21,31 @@ type Config struct {
 
 	// The headers to use. This defaults to the headers specified in
 	// poego.Headers
-	Headers []string
+	Headers http.Header
 
 	Proxy string // TODO
+}
+
+func (c *Config) HTTPHeaders() http.Header {
+	headers := http.Header{}
+	for k, h := range c.Headers {
+		if len(h) > 0 {
+			headers.Add(k, h[0])
+		}
+	}
+
+	for k, h := range basicHeader {
+		headers.Set(k, h)
+	}
+
+	cookie := &http.Cookie{
+		Name:   "p-b",
+		Value:  c.Token,
+		Domain: "poe.com",
+	}
+	headers.Add("Cookie", cookie.String())
+
+	return headers
 }
 
 type Transport struct {
@@ -31,8 +53,33 @@ type Transport struct {
 	tr   http.RoundTripper
 }
 
+var defaultHeaders = http.Header{
+	"User-Agent":                []string{"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"},
+	"Accept":                    []string{"text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"},
+	"Accept-Encoding":           []string{"gzip, deflate, br"},
+	"Accept-Language":           []string{"en-US,en;q=0.5"},
+	"Te":                        []string{"trailers"},
+	"Upgrade-Insecure-Requests": []string{"1"},
+}
+
+var basicHeader = map[string]string{
+	"Referrer":       "https://poe.com/",
+	"Origin":         "https://poe.com",
+	"Host":           "poe.com",
+	"Sec-Fetch-Dest": "empty",
+	"Sec-Fetch-Mode": "cors",
+	"Sec-Fetch-Site": "same-origin",
+}
+
 // RoundTrip implement http.RoundTripper
 func (t *Transport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
+	headers := t.conf.HTTPHeaders()
+	for k, h := range headers {
+		for _, v := range h {
+			req.Header.Add(k, v)
+		}
+	}
+
 	return t.tr.RoundTrip(req)
 }
 
