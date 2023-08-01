@@ -27,10 +27,10 @@ type Config struct {
 }
 
 func (c *Config) HTTPHeaders() http.Header {
-	headers := http.Header{}
-	for k, h := range c.Headers {
-		if len(h) > 0 {
-			headers.Add(k, h[0])
+	headers := c.Headers
+	for k, h := range defaultHeaders {
+		if v := headers.Get(k); v == "" {
+			headers.Set(k, h[0])
 		}
 	}
 
@@ -73,8 +73,7 @@ var basicHeader = map[string]string{
 
 // RoundTrip implement http.RoundTripper
 func (t *Transport) RoundTrip(req *http.Request) (resp *http.Response, err error) {
-	headers := t.conf.HTTPHeaders()
-	for k, h := range headers {
+	for k, h := range t.conf.Headers {
 		for _, v := range h {
 			req.Header.Add(k, v)
 		}
@@ -85,6 +84,11 @@ func (t *Transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 
 // NewClient new poe-go client
 func New(conf *Config) *Client {
+	if conf == nil {
+		panic("config is nil")
+	}
+
+	conf.Headers = conf.HTTPHeaders()
 	return &Client{
 		Client: &http.Client{Transport: newTransport(conf, http.DefaultTransport)},
 		conf:   conf,
@@ -92,6 +96,12 @@ func New(conf *Config) *Client {
 }
 
 func NewWithHTTPClient(conf *Config, cli *http.Client) *Client {
+	if conf == nil {
+		panic("config is nil")
+	}
+
+	conf.Headers = conf.HTTPHeaders()
+
 	c := &Client{conf: conf}
 
 	// wrap transport
