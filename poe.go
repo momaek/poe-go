@@ -1,12 +1,23 @@
 package poego
 
-import "net/http"
+import (
+	"context"
+	"net/http"
+	"sync"
+)
 
 // Client poego client
 // do every request
 type Client struct {
 	*http.Client
 	conf *Config
+
+	mutex   sync.Mutex
+	chanMap map[string]chan string
+
+	ctx    context.Context
+	cancel context.CancelFunc
+	wsErr  error
 }
 
 // Config poe-go config struct
@@ -88,10 +99,15 @@ func New(conf *Config) *Client {
 		panic("config is nil")
 	}
 
+	ctx, cancel := context.WithCancel(context.Background())
+
 	conf.Headers = conf.HTTPHeaders()
 	return &Client{
 		Client: &http.Client{Transport: newTransport(conf, http.DefaultTransport)},
 		conf:   conf,
+
+		ctx:    ctx,
+		cancel: cancel,
 	}
 }
 
@@ -103,6 +119,7 @@ func NewWithHTTPClient(conf *Config, cli *http.Client) *Client {
 	conf.Headers = conf.HTTPHeaders()
 
 	c := &Client{conf: conf}
+	c.ctx, c.cancel = context.WithCancel(context.Background())
 
 	// wrap transport
 	tr := newTransport(conf, cli.Transport)
