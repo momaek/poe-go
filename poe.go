@@ -93,7 +93,7 @@ func (t *Transport) RoundTrip(req *http.Request) (resp *http.Response, err error
 	return t.tr.RoundTrip(req)
 }
 
-// NewClient new poe-go client
+// NewClient new poe-go client with config
 func New(conf *Config) *Client {
 	if conf == nil {
 		panic("config is nil")
@@ -111,6 +111,7 @@ func New(conf *Config) *Client {
 	}
 }
 
+// NewWithHTTPClient new poe client with Config and http.Client
 func NewWithHTTPClient(conf *Config, cli *http.Client) *Client {
 	if conf == nil {
 		panic("config is nil")

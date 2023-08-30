@@ -31,4 +31,6 @@ func (c *Client) websocket(ctx context.Context) {
 	}
 }
 
-func (c *Client) websocketURL() string { return "" }
+func (c *Client) websocketURL() string {
+	return ""
+}
